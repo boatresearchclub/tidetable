@@ -323,6 +323,12 @@ const PROXY_STRATEGIES = [
 ];
 let workingStrategy = null;
 
+function fetchWithTimeout(url, ms=8000){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, {cache:'no-store', signal: ctrl.signal}).finally(()=>clearTimeout(timer));
+}
+
 async function fetchJsonWithFallback(targetUrl){
   const order = workingStrategy
     ? [workingStrategy, ...PROXY_STRATEGIES.filter(s=>s!==workingStrategy)]
@@ -330,7 +336,7 @@ async function fetchJsonWithFallback(targetUrl){
   let lastErr;
   for(const strat of order){
     try{
-      const res = await fetch(strat.build(targetUrl), {cache:'no-store'});
+      const res = await fetchWithTimeout(strat.build(targetUrl), 8000);
       if(!res.ok) throw new Error('http '+res.status);
       const data = await res.json();
       workingStrategy = strat;
@@ -347,36 +353,43 @@ async function fetchPort(pc, hc, yr, mn, dy){
   return data;
 }
 
-/* discover harbor_code for each venue, grouped by prefecture to minimize calls */
-async function ensureHarborCodes(){
+/* discover harbor_code for each venue, grouped by prefecture to minimize calls.
+   All candidate hc values (and all prefecture groups) are probed concurrently
+   rather than one-at-a-time — combined with the fetch timeout above, this
+   guarantees discovery finishes in roughly one round-trip instead of a long
+   sequential chain that can look "stuck". */
+async function discoverGroup(pc, group){
   const {yr,mn,dy} = todayParts();
-  const byPc = {};
-  venues.forEach(v=>{ (byPc[v.pc] ??= []).push(v); });
+  for(const v of group){
+    const cached = await cacheGet(`hc:${v.pc}:${v.id}`);
+    if(cached) v.hc = Number(cached);
+  }
+  if(group.every(v=>v.hc)) return;
 
-  for(const pc of Object.keys(byPc)){
-    const group = byPc[pc];
-    // check cache first
+  const HC_MAX = 15;
+  const attempts = [];
+  for(let hc=1; hc<=HC_MAX; hc++){
+    attempts.push(fetchPort(pc,hc,yr,mn,dy).then(data=>({hc,data})).catch(()=>null));
+  }
+  const results = await Promise.all(attempts);
+  for(const r of results){
+    if(!r) continue;
+    const all = [r.data.tide.port, ...(r.data.tide.link||[])];
     for(const v of group){
-      const cached = await cacheGet(`hc:${v.pc}:${v.id}`);
-      if(cached) v.hc = Number(cached);
-    }
-    if(group.every(v=>v.hc)) continue;
-
-    for(let hc=1; hc<=25 && group.some(v=>!v.hc); hc++){
-      try{
-        const data = await fetchPort(pc, hc, yr, mn, dy);
-        const all = [data.tide.port, ...(data.tide.link||[])];
-        for(const v of group){
-          if(v.hc) continue;
-          const match = all.find(h => h.harbor_namej && v.fragments.some(f=>h.harbor_namej.includes(f)));
-          if(match){
-            v.hc = match.harbor_code;
-            await cacheSet(`hc:${v.pc}:${v.id}`, String(v.hc));
-          }
-        }
-      }catch(e){ /* try next hc */ }
+      if(v.hc) continue;
+      const match = all.find(h => h.harbor_namej && v.fragments.some(f=>h.harbor_namej.includes(f)));
+      if(match){
+        v.hc = match.harbor_code;
+        cacheSet(`hc:${v.pc}:${v.id}`, String(v.hc));
+      }
     }
   }
+}
+
+async function ensureHarborCodes(){
+  const byPc = {};
+  venues.forEach(v=>{ (byPc[v.pc] ??= []).push(v); });
+  await Promise.all(Object.entries(byPc).map(([pc,group])=>discoverGroup(pc,group)));
 }
 
 /* ============ current level interpolation ============ */
@@ -494,12 +507,22 @@ async function loadVenue(v){
   }
 }
 
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise(resolve=>setTimeout(resolve, ms)), // swallow — individual pieces show their own error state
+  ]);
+}
+
 async function loadAll(){
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true; btn.textContent = '⟳ 更新中…';
-  await ensureHarborCodes();
-  await Promise.all(venues.map(loadVenue));
-  btn.disabled = false; btn.textContent = '⟳ 更新';
+  try{
+    await withTimeout(ensureHarborCodes(), 25000);
+    await withTimeout(Promise.all(venues.map(loadVenue)), 30000);
+  } finally {
+    btn.disabled = false; btn.textContent = '⟳ 更新';
+  }
 }
 
 function initCards(){
