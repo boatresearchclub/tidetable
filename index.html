@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>潮見盤 | 競艇6場 潮汐ダッシュボード（GitHub Pages版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08121f;
+    --bg-2:#0c1a2c;
+    --panel:#0f2138;
+    --panel-2:#132844;
+    --line:#1e3a5c;
+    --line-soft:#16304e;
+    --teal:#3fb8af;
+    --teal-soft:#245c58;
+    --gold:#e8a33d;
+    --green:#3ecf8e;
+    --green-soft:rgba(62,207,142,.14);
+    --red:#e8636b;
+    --red-soft:rgba(232,99,107,.14);
+    --grey:#5c7089;
+    --text:#eaf2fa;
+    --text-dim:#9fb3cc;
+    --text-mute:#6f84a0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(63,184,175,.16), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(232,163,61,.10), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:"Noto Sans JP","Zen Kaku Gothic New",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .num{font-family:"JetBrains Mono",monospace;}
+  .disp{font-family:"Zen Kaku Gothic New",sans-serif;}
+
+  /* ===== hero ===== */
+  header.hero{
+    position:relative;
+    padding:28px 20px 20px;
+    border-bottom:1px solid var(--line-soft);
+    overflow:hidden;
+  }
+  .wave-rail{position:absolute;left:0;right:0;bottom:-2px;height:34px;opacity:.55;}
+  .wave-rail svg{width:200%;height:100%;animation:driftwave 18s linear infinite;}
+  @keyframes driftwave{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+  @media (prefers-reduced-motion:reduce){ .wave-rail svg{animation:none;} }
+
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;position:relative;z-index:1;}
+  .brand-eyebrow{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    color:var(--teal);text-transform:uppercase;margin:0 0 6px;
+  }
+  h1.title{
+    font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;
+    font-size:clamp(24px,5vw,34px);margin:0 0 6px;letter-spacing:.01em;
+  }
+  .title small{display:block;font-family:"Noto Sans JP",sans-serif;font-weight:500;font-size:13px;color:var(--text-dim);margin-top:4px;letter-spacing:0;}
+  .clock-box{
+    text-align:right;background:rgba(15,33,56,.6);border:1px solid var(--line-soft);
+    border-radius:12px;padding:10px 16px;min-width:150px;backdrop-filter:blur(4px);
+  }
+  .clock-box .jst{font-size:10px;color:var(--text-mute);letter-spacing:.14em;}
+  .clock-box .time{font-family:"JetBrains Mono",monospace;font-size:22px;font-weight:700;color:var(--gold);}
+  .clock-box .date{font-size:11px;color:var(--text-dim);margin-top:2px;}
+
+  /* ===== tabs ===== */
+  nav.tabs{
+    display:flex;gap:6px;padding:14px 20px 0;position:relative;z-index:1;
+  }
+  nav.tabs button{
+    font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:13.5px;
+    background:transparent;border:1px solid var(--line-soft);color:var(--text-dim);
+    padding:9px 16px;border-radius:9px 9px 0 0;cursor:pointer;letter-spacing:.02em;
+    border-bottom:none;position:relative;top:1px;transition:.15s;
+  }
+  nav.tabs button.active{background:var(--panel);color:var(--text);border-color:var(--line);}
+  nav.tabs button:not(.active):hover{color:var(--text);background:rgba(255,255,255,.03);}
+
+  main{max-width:1180px;margin:0 auto;padding:0 20px 60px;}
+  section.panel{
+    background:var(--panel);border:1px solid var(--line);border-top:none;
+    border-radius:0 10px 10px 10px;padding:20px;
+  }
+  section.panel + section.panel{margin-top:0;}
+
+  .panel-note{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .panel-note p{margin:0;font-size:12.5px;color:var(--text-mute);line-height:1.6;}
+  .refresh-btn{
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--teal);
+    background:var(--teal-soft);border:1px solid var(--teal);border-radius:7px;
+    padding:7px 12px;cursor:pointer;white-space:nowrap;font-weight:700;
+  }
+  .refresh-btn:hover{background:rgba(63,184,175,.3);}
+  .refresh-btn:disabled{opacity:.5;cursor:default;}
+
+  /* ===== venue cards ===== */
+  .card-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;
+  }
+  .vcard{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
+    padding:16px 16px 14px;position:relative;overflow:hidden;
+  }
+  .vcard::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--teal),var(--gold));
+  }
+  .vcard-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .vcard-head .name{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;font-size:19px;}
+  .vcard-head .point{display:block;font-size:11px;color:var(--text-mute);font-weight:500;margin-top:2px;}
+  .shio-badge{
+    font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;
+    background:rgba(232,163,61,.15);color:var(--gold);border:1px solid rgba(232,163,61,.4);
+    white-space:nowrap;
+  }
+
+  .vcard-body{display:flex;gap:14px;align-items:center;}
+  .gauge-wrap{width:34px;height:92px;background:#081422;border:1px solid var(--line);border-radius:8px;position:relative;flex:none;overflow:hidden;}
+  .gauge-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,var(--teal),#1c6d66);transition:height .6s ease;}
+  .gauge-marker{position:absolute;left:-3px;right:-3px;height:2px;background:var(--gold);}
+
+  .level-info{flex:1;min-width:0;}
+  .level-cm{font-family:"JetBrains Mono",monospace;font-size:27px;font-weight:700;color:var(--text);line-height:1;}
+  .level-cm span{font-size:13px;color:var(--text-mute);font-weight:400;margin-left:3px;}
+  .level-sub{font-size:11.5px;color:var(--text-dim);margin-top:6px;line-height:1.7;}
+  .level-sub b{color:var(--text);font-family:"JetBrains Mono",monospace;font-weight:500;}
+
+  .spark-wrap{margin-top:12px;}
+  .spark-wrap svg{width:100%;height:44px;display:block;}
+
+  .vcard-status{
+    margin-top:10px;font-size:11.5px;color:var(--text-mute);
+    padding:8px 10px;background:rgba(255,255,255,.03);border-radius:7px;border:1px dashed var(--line-soft);
+  }
+  .vcard-status a{color:var(--teal);text-decoration:none;}
+  .vcard-status.err{color:var(--red);border-color:rgba(232,99,107,.4);}
+
+  /* ===== data tab ===== */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-dim);margin-bottom:16px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  .legend .lg-buy{background:var(--green-soft);border:1px solid var(--green);}
+  .legend .lg-sell{background:var(--red-soft);border:1px solid var(--red);}
+  .legend .lg-low{background:rgba(255,255,255,.04);border:1px solid var(--line);}
+
+  .venue-block{margin-bottom:26px;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .venue-block-head{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+    background:var(--panel-2);padding:12px 16px;cursor:pointer;
+  }
+  .venue-block-head .name{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;font-size:17px;}
+  .venue-block-head .point{font-size:11px;color:var(--text-mute);font-weight:500;margin-left:8px;}
+  .venue-block-head .avg{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--gold);
+    background:rgba(232,163,61,.12);border:1px solid rgba(232,163,61,.35);
+    padding:3px 9px;border-radius:20px;
+  }
+  .venue-block-body{padding:14px 16px 16px;}
+  table.tide-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.tide-table th, table.tide-table td{padding:8px 6px;text-align:center;border:1px solid var(--line-soft);}
+  table.tide-table thead th{
+    background:#0a1830;color:var(--text-dim);font-weight:700;font-size:11.5px;letter-spacing:.02em;
+  }
+  table.tide-table tbody th{
+    background:#0c1c33;color:var(--text);font-weight:700;font-size:12.5px;width:64px;
+  }
+  table.tide-table td .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13.5px;display:block;}
+  table.tide-table td .n{font-size:9.5px;color:var(--text-mute);display:block;margin-top:2px;}
+  td.cell-buy{background:var(--green-soft);}
+  td.cell-buy .v{color:var(--green);}
+  td.cell-sell{background:var(--red-soft);}
+  td.cell-sell .v{color:var(--red);}
+  td.cell-lown .v{color:var(--grey);}
+  td.cell-lown .n{color:var(--grey);}
+  td.cell-empty{color:var(--text-mute);}
+  td.cell-neutral .v{color:var(--text);}
+
+  footer{max-width:1180px;margin:22px auto 0;padding:0 20px;font-size:11px;color:var(--text-mute);line-height:1.8;}
+  footer a{color:var(--teal);}
+
+  @media (max-width:640px){
+    .clock-box{min-width:0;}
+    table.tide-table{font-size:11px;}
+    table.tide-table th, table.tide-table td{padding:6px 3px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-top">
+    <div>
+      <p class="brand-eyebrow">TIDE INSTRUMENT — 6 VENUES</p>
+      <h1 class="title">潮見盤
+        <small>児島・平和島・下関・福岡・若松・丸亀 &mdash; 潮汐を一目で。データは <span class="num">tide736.net</span> 潮汐APIより取得</small>
+      </h1>
+    </div>
+    <div class="clock-box">
+      <div class="jst">JST NOW</div>
+      <div class="time num" id="clockTime">--:--:--</div>
+      <div class="date" id="clockDate">----/--/--</div>
+    </div>
+  </div>
+  <div class="wave-rail">
+    <svg viewBox="0 0 800 40" preserveAspectRatio="none">
+      <path d="M0,20 C50,0 100,40 150,20 C200,0 250,40 300,20 C350,0 400,40 450,20 C500,0 550,40 600,20 C650,0 700,40 750,20 C800,0 850,40 900,20 L900,40 L0,40 Z"
+        fill="rgba(63,184,175,.5)"/>
+      <path d="M400,20 C450,0 500,40 550,20 C600,0 650,40 700,20 C750,0 800,40 850,20 C900,0 950,40 1000,20 C1050,0 1100,40 1150,20 C1200,0 1250,40 1300,20 L1300,40 L400,40 Z"
+        fill="rgba(63,184,175,.5)"/>
+    </svg>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="live">潮汐ライブ</button>
+  <button data-tab="data">イン逃げ率データ</button>
+</nav>
+
+<main>
+  <section class="panel" id="tab-live">
+    <div class="panel-note">
+      <p>現在時刻の潮位を各場の観測地点（水路実測ではなく計算推算値）から表示します。数十分ごとの自動更新に対応。航海用途には使用できません。</p>
+      <button class="refresh-btn" id="refreshBtn">⟳ 更新</button>
+    </div>
+    <div class="card-grid" id="cardGrid"></div>
+  </section>
+
+  <section class="panel" id="tab-data" style="display:none;">
+    <div class="panel-note">
+      <p>各場「潮回り × 局面」別のイン逃げ率（2021–2025年集計）。色分けは場平均に対する差分で自動判定しています。</p>
+    </div>
+    <div class="legend">
+      <span><i class="lg-buy"></i>買い目安（場平均+5pt以上）</span>
+      <span><i class="lg-sell"></i>売り目安（場平均-5pt以下）</span>
+      <span><i class="lg-low"></i>n&lt;100（参考程度）</span>
+      <span>— ほぼ発生しない組み合わせ</span>
+    </div>
+    <div id="dataBlocks"></div>
+  </section>
+</main>
+
+<footer>
+  潮汐データ出典：<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.net（日本沿岸736港の潮汐表）</a>／海上保安庁海洋情報部の潮汐調和定数に基づく推算値であり、公式「潮汐表」の代替にはなりません。イン逃げ率データは提供いただいた集計資料（舟券太郎データ新聞 特別企画）に基づく参考情報です。投資判断は自己責任でお願いします。
+</footer>
+
+<script>
+/* ============ tab switching ============ */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-live').style.display = btn.dataset.tab==='live' ? '' : 'none';
+    document.getElementById('tab-data').style.display = btn.dataset.tab==='data' ? '' : 'none';
+  });
+});
+
+/* ============ clock ============ */
+function pad(n){return String(n).padStart(2,'0');}
+function updateClock(){
+  const now = new Date();
+  const jst = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));
+  document.getElementById('clockTime').textContent = `${pad(jst.getHours())}:${pad(jst.getMinutes())}:${pad(jst.getSeconds())}`;
+  document.getElementById('clockDate').textContent = `${jst.getFullYear()}/${pad(jst.getMonth()+1)}/${pad(jst.getDate())}`;
+}
+updateClock(); setInterval(updateClock,1000);
+
+/* ============ venue definitions ============ */
+const venues = [
+  {id:'kojima',      label:'児島',   point:'下津井',       pc:33, fragments:['下津井']},
+  {id:'heiwajima',   label:'平和島', point:'築地',         pc:13, fragments:['築地']},
+  {id:'shimonoseki', label:'下関',   point:'岩黒',         pc:35, fragments:['岩黒']},
+  {id:'fukuoka',     label:'福岡',   point:'博多船だまり', pc:40, fragments:['博多船だまり','博多船溜','博多']},
+  {id:'wakamatsu',   label:'若松',   point:'若松',         pc:40, fragments:['若松']},
+  {id:'marugame',    label:'丸亀',   point:'丸亀',         pc:37, fragments:['丸亀']},
+];
+
+/* ============ storage helpers (cache discovered harbor codes) ============ */
+/* Uses plain localStorage so this works on GitHub Pages / any static host,
+   not just inside a Claude artifact. Cache lives per-browser, not shared
+   across visitors — still cuts repeat API calls down to zero after first load. */
+async function cacheGet(key){
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+async function cacheSet(key, val){
+  try{ localStorage.setItem(key, val); }catch(e){ /* ignore */ }
+}
+
+/* ============ tide736 API ============ */
+function todayParts(){
+  const jst = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));
+  return {yr:jst.getFullYear(), mn:jst.getMonth()+1, dy:jst.getDate(), jst};
+}
+async function fetchPort(pc, hc, yr, mn, dy){
+  const url = `https://api.tide736.net/get_tide.php?pc=${pc}&hc=${hc}&yr=${yr}&mn=${mn}&dy=${dy}&rg=day`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('http '+res.status);
+  const data = await res.json();
+  if(data.status !== 1) throw new Error(data.message || 'api error');
+  return data;
+}
+
+/* discover harbor_code for each venue, grouped by prefecture to minimize calls */
+async function ensureHarborCodes(){
+  const {yr,mn,dy} = todayParts();
+  const byPc = {};
+  venues.forEach(v=>{ (byPc[v.pc] ??= []).push(v); });
+
+  for(const pc of Object.keys(byPc)){
+    const group = byPc[pc];
+    // check cache first
+    for(const v of group){
+      const cached = await cacheGet(`hc:${v.pc}:${v.id}`);
+      if(cached) v.hc = Number(cached);
+    }
+    if(group.every(v=>v.hc)) continue;
+
+    for(let hc=1; hc<=25 && group.some(v=>!v.hc); hc++){
+      try{
+        const data = await fetchPort(pc, hc, yr, mn, dy);
+        const all = [data.tide.port, ...(data.tide.link||[])];
+        for(const v of group){
+          if(v.hc) continue;
+          const match = all.find(h => h.harbor_namej && v.fragments.some(f=>h.harbor_namej.includes(f)));
+          if(match){
+            v.hc = match.harbor_code;
+            await cacheSet(`hc:${v.pc}:${v.id}`, String(v.hc));
+          }
+        }
+      }catch(e){ /* try next hc */ }
+    }
+  }
+}
+
+/* ============ current level interpolation ============ */
+function findChartToday(data, yr, mn, dy){
+  const key = `${yr}-${pad(mn)}-${pad(dy)}`;
+  return data.tide.chart[key] || Object.values(data.tide.chart)[0];
+}
+function currentLevel(chart, now){
+  const pts = chart.tide;
+  if(!pts || !pts.length) return null;
+  let best=null, bestDiff=Infinity;
+  for(let i=0;i<pts.length-1;i++){
+    const t0=pts[i].unix, t1=pts[i+1].unix;
+    if(now.getTime()>=t0 && now.getTime()<=t1){
+      const ratio = (now.getTime()-t0)/(t1-t0);
+      return pts[i].cm + (pts[i+1].cm-pts[i].cm)*ratio;
+    }
+    const d = Math.abs(pts[i].unix-now.getTime());
+    if(d<bestDiff){bestDiff=d;best=pts[i].cm;}
+  }
+  return best;
+}
+function nextEvent(chart, now){
+  const evs = [
+    ...(chart.flood||[]).map(e=>({...e,type:'満潮'})),
+    ...(chart.edd||[]).map(e=>({...e,type:'干潮'})),
+  ].filter(e=>e.unix > now.getTime()).sort((a,b)=>a.unix-b.unix);
+  return evs[0] || null;
+}
+
+/* ============ rendering: live cards ============ */
+function sparkSVG(pts, nowRatio){
+  const cms = pts.map(p=>p.cm);
+  const min = Math.min(...cms), max = Math.max(...cms);
+  const range = (max-min)||1;
+  const W=300,H=44,pad=3;
+  const step = (W-pad*2)/(pts.length-1);
+  const coords = cms.map((cm,i)=>{
+    const x = pad+i*step;
+    const y = H-pad - ((cm-min)/range)*(H-pad*2);
+    return [x,y];
+  });
+  const path = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
+  const nowX = pad + nowRatio*(W-pad*2);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path d="${path} L${W-pad},${H} L${pad},${H} Z" fill="rgba(63,184,175,.15)" stroke="none"/>
+    <path d="${path}" fill="none" stroke="#3fb8af" stroke-width="1.6"/>
+    <line x1="${nowX.toFixed(1)}" y1="0" x2="${nowX.toFixed(1)}" y2="${H}" stroke="#e8a33d" stroke-width="1" stroke-dasharray="3,2"/>
+    <circle cx="${nowX.toFixed(1)}" cy="${(H-pad-((currentCmGlobal-min)/range)*(H-pad*2)).toFixed(1)}" r="3" fill="#e8a33d"/>
+  </svg>`;
+}
+
+let currentCmGlobal = 0; // scratch var used inside sparkSVG closure per-card render
+
+function cardSkeleton(v){
+  return `<div class="vcard" id="card-${v.id}">
+    <div class="vcard-head">
+      <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
+      <span class="shio-badge" id="shio-${v.id}">--</span>
+    </div>
+    <div class="vcard-status" id="status-${v.id}">読み込み中…</div>
+  </div>`;
+}
+
+function renderCardData(v, data, now){
+  const chart = findChartToday(data, now.__yr, now.__mn, now.__dy);
+  const cm = currentLevel(chart, now);
+  currentCmGlobal = cm;
+  const nxt = nextEvent(chart, now);
+  const cms = chart.tide.map(p=>p.cm);
+  const min = Math.min(...cms), max = Math.max(...cms);
+  const fillPct = Math.max(0,Math.min(100, ((cm-min)/((max-min)||1))*100));
+  const nowRatio = chart.tide.findIndex(p=>p.unix>now.getTime());
+  const ratio = nowRatio<=0 ? 0.98 : nowRatio/chart.tide.length;
+
+  const el = document.getElementById(`card-${v.id}`);
+  document.getElementById(`shio-${v.id}`).textContent = chart.moon?.title || '--';
+  el.innerHTML = `
+    <div class="vcard-head">
+      <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
+      <span class="shio-badge">${chart.moon?.title || '--'}</span>
+    </div>
+    <div class="vcard-body">
+      <div class="gauge-wrap"><div class="gauge-fill" style="height:${fillPct.toFixed(0)}%"></div></div>
+      <div class="level-info">
+        <div class="level-cm">${cm.toFixed(0)}<span>cm</span></div>
+        <div class="level-sub">
+          満潮 <b>${(chart.flood?.[0]?.time)||'--'}</b> / <b>${(chart.flood?.[1]?.time)||'--'}</b><br>
+          干潮 <b>${(chart.edd?.[0]?.time)||'--'}</b> / <b>${(chart.edd?.[1]?.time)||'--'}</b><br>
+          ${nxt ? `次：<b>${nxt.type} ${nxt.time}</b>` : '本日分終了'}
+        </div>
+      </div>
+    </div>
+    <div class="spark-wrap">${sparkSVG(chart.tide, ratio)}</div>
+  `;
+}
+
+async function loadVenue(v){
+  const statusEl = ()=>document.getElementById(`status-${v.id}`);
+  try{
+    if(!v.hc){
+      if(statusEl()) statusEl().innerHTML = `観測地点コードを特定できませんでした。<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.netで確認</a>`;
+      if(statusEl()) statusEl().classList.add('err');
+      return;
+    }
+    const {yr,mn,dy,jst} = todayParts();
+    const data = await fetchPort(v.pc, v.hc, yr, mn, dy);
+    jst.__yr=yr; jst.__mn=mn; jst.__dy=dy;
+    renderCardData(v, data, jst);
+  }catch(e){
+    if(statusEl()){
+      statusEl().innerHTML = `潮汐データを取得できませんでした（${e.message}）。<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.netで確認</a>`;
+      statusEl().classList.add('err');
+    }
+  }
+}
+
+async function loadAll(){
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true; btn.textContent = '⟳ 更新中…';
+  await ensureHarborCodes();
+  await Promise.all(venues.map(loadVenue));
+  btn.disabled = false; btn.textContent = '⟳ 更新';
+}
+
+function initCards(){
+  document.getElementById('cardGrid').innerHTML = venues.map(cardSkeleton).join('');
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+initCards();
+loadAll();
+setInterval(loadAll, 10*60*1000); // auto refresh every 10 min
+
+/* ============ data tab: イン逃げ率 tables ============ */
+const venueData = {
+  kojima: {label:'児島', point:'下津井', avg:55.6, races:'11,218', rows:{
+    '大潮': [[69.4,85],[49.8,641],[55.2,1606],[72.7,231]],
+    '中潮': [[53.0,1143],[49.1,1011],[58.8,1956],[61.8,411]],
+    '小潮': [[50.7,1576],[59.6,456],[69.7,142],[59.5,388]],
+    '若潮': [[64.2,193],null,[53.8,325],[58.0,226]],
+    '長潮': [[61.6,359],[50.0,6],[57.6,191],[50.7,272]],
+  }},
+  heiwajima: {label:'平和島', point:'築地', avg:44.7, races:'10,453', rows:{
+    '大潮': [[44.5,1706],[57.7,215],[27.9,43],[36.3,581]],
+    '中潮': [[46.3,1935],[51.1,370],[42.3,832],[42.9,961]],
+    '小潮': [[44.9,276],[39.6,182],[44.1,1377],[49.6,452]],
+    '若潮': [[41.3,288],[42.6,244],[48.8,211],null],
+    '長潮': [[34.4,163],[46.0,226],[51.3,372],[52.6,19]],
+  }},
+  shimonoseki: {label:'下関', point:'岩黒', avg:59.7, races:'10,764', rows:{
+    '大潮': [[57.6,1633],[67.4,325],[66.7,30],[46.9,448]],
+    '中潮': [[62.3,2123],[69.1,475],[54.8,869],[54.6,1047]],
+    '小潮': [[74.3,140],[55.0,202],[59.1,1481],[71.2,504]],
+    '若潮': [[55.0,240],[59.6,250],[68.7,230],null],
+    '長潮': [[51.3,113],[55.7,235],[63.7,408],[54.5,11]],
+  }},
+  fukuoka: {label:'福岡', point:'博多船だまり', avg:55.0, races:'11,344', rows:{
+    '大潮': [[66.5,409],[51.2,80],[49.5,1478],[58.2,867]],
+    '中潮': [[60.5,837],[46.9,646],[53.3,2287],[56.9,897]],
+    '小潮': [[54.0,882],[53.0,673],[62.2,645],[66.0,47]],
+    '若潮': [[60.5,473],[56.0,25],[53.4,58],[50.0,224]],
+    '長潮': [[53.1,550],[62.4,101],[52.2,23],[50.0,142]],
+  }},
+  wakamatsu: {label:'若松', point:'若松', avg:56.9, races:'11,648', rows:{
+    '大潮': [[60.3,1855],[60.3,121],[42.2,135],[47.2,868]],
+    '中潮': [[60.9,2020],[60.7,410],[49.4,1244],[60.2,1194]],
+    '小潮': [[52.9,189],[51.6,378],[57.7,1375],[63.6,305]],
+    '若潮': [[47.8,441],[59.8,261],[65.1,109],null],
+    '長潮': [[47.0,266],[60.7,262],[68.9,212],[100.0,3]],
+  }},
+  marugame: {label:'丸亀', point:'丸亀', avg:56.1, races:'11,549', rows:{
+    '大潮': [[66.1,1085],[100.0,3],[50.2,711],[57.9,986]],
+    '中潮': [[59.3,1233],[63.8,235],[48.3,1944],[61.1,1272]],
+    '小潮': [[45.8,286],[48.1,752],[60.2,1352],[78.7,47]],
+    '若潮': [[47.4,500],[65.9,220],[71.4,28],[48.6,37]],
+    '長潮': [[47.2,422],[60.1,291],[62.8,145],null],
+  }},
+};
+const COLS = ['上げ潮','満潮付近','下げ潮','干潮付近'];
+
+function cellClass(cell, avg){
+  if(!cell) return 'cell-empty';
+  const [val,n] = cell;
+  if(n<100) return 'cell-lown';
+  const diff = val-avg;
+  if(diff>=5) return 'cell-buy';
+  if(diff<=-5) return 'cell-sell';
+  return 'cell-neutral';
+}
+function cellHTML(cell, avg){
+  if(!cell) return `<td class="cell-empty">—</td>`;
+  const [val,n] = cell;
+  return `<td class="${cellClass(cell,avg)}"><span class="v">${val.toFixed(1)}%</span><span class="n">n=${n}${n<100?' ※':''}</span></td>`;
+}
+
+function renderDataTab(){
+  const html = venues.map(v=>{
+    const d = venueData[v.id];
+    const rowsHTML = Object.entries(d.rows).map(([label,cells])=>`
+      <tr><th>${label}</th>${cells.map(c=>cellHTML(c,d.avg)).join('')}</tr>
+    `).join('');
+    return `<div class="venue-block">
+      <div class="venue-block-head">
+        <div><span class="name">${d.label}</span><span class="point">潮回り × 局面 イン逃げ率（観測地点：${v.point}）</span></div>
+        <span class="avg">場平均 ${d.avg}%　全${d.races}レース・2021–2025</span>
+      </div>
+      <div class="venue-block-body">
+        <table class="tide-table">
+          <thead><tr><th></th>${COLS.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('dataBlocks').innerHTML = html;
+}
+renderDataTab();
+</script>
+</body>
+</html>
