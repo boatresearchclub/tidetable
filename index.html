@@ -142,6 +142,22 @@
   .graph-wrap img{
     width:100%;height:auto;display:block;
   }
+  .graph-wrap svg{
+    width:100%;height:auto;display:block;
+  }
+  .level-now{
+    font-size:12px;color:var(--text2);margin-bottom:8px;
+  }
+  .level-now b{
+    font-family:var(--mono);font-size:20px;color:var(--text);font-weight:700;margin-left:4px;
+  }
+  .level-now b small{font-size:11px;color:var(--text3);font-weight:400;margin-left:2px;}
+  .card-foot{margin-top:10px;text-align:right;}
+  .shio-badge{
+    font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;
+    background:var(--orange2);color:var(--orange);border:1px solid rgba(226,104,10,.35);
+    white-space:nowrap;
+  }
   .graph-fallback{
     padding:16px;font-size:12px;color:var(--text3);text-align:center;
   }
@@ -231,7 +247,7 @@
 <main>
   <section class="panel" id="tab-live">
     <div class="panel-note">
-      <p>各場の観測地点の潮位グラフ（縦軸：潮位cm／横軸：時刻）をtide736.net公式の画像から表示。潮名・上げ潮／下げ潮などの状態もグラフ内に表示されます。地点コードは推定のため、画像内の地点名表記が一致しているかご確認ください。ズレていた場合は教えてください。航海用途には使用できません。</p>
+      <p>各場の観測地点の潮位グラフ（縦軸：潮位cm／横軸：時刻）をtide736.netの潮汐データから自前で描画しています。潮名・上げ潮／下げ潮／満潮付近／干潮付近といった状態も表示。10分ごとに自動更新されます。航海用途には使用できません。</p>
     </div>
     <div class="card-grid" id="cardGrid"></div>
   </section>
@@ -276,73 +292,198 @@ function updateClock(){
 updateClock(); setInterval(updateClock,1000);
 
 /* ============ venue definitions ============ */
-/* po = 潮MieYell（sio.mieyell.jp）の地点コード。名前を直接確認済みで確実。
-   pc/hc = tide736.net の都道府県コード／港コード。tide736 側は自動検証が
-   できなかったため、潮MieYellの港コード末尾（＝都道府県内の掲載順）から
-   推定しています。グラフ画像内に地点名が表示されるので、ズレていれば
-   一目で分かります。 */
+/* pc/hc は tide736.net の DevTools 実測で確認済み（POST https://tide736.net/api/get_tide.php）。
+   po は 潮MieYell（sio.mieyell.jp）の地点コード。検証用に併記。 */
 const venues = [
-  {id:'kojima',      label:'児島',   point:'下津井',       po:'63307', pc:33, hc:7},
-  {id:'heiwajima',   label:'平和島', point:'築地',         po:'21301', pc:13, hc:1},
-  {id:'shimonoseki', label:'下関',   point:'岩黒',         po:'63516', pc:35, hc:16},
-  {id:'fukuoka',     label:'福岡',   point:'博多船だまり', po:'84020', pc:40, hc:20},
-  {id:'wakamatsu',   label:'若松',   point:'若松',         po:'84010', pc:40, hc:10},
-  {id:'marugame',    label:'丸亀',   point:'丸亀',         po:'73710', pc:37, hc:10},
+  {id:'kojima',      label:'児島',   point:'下津井',       pc:28, hc:9,  po:'63307'},
+  {id:'heiwajima',   label:'平和島', point:'築地',         pc:13, hc:1,  po:'21301'},
+  {id:'shimonoseki', label:'下関',   point:'岩黒',         pc:35, hc:16, po:'63516'},
+  {id:'fukuoka',     label:'福岡',   point:'博多船だまり', pc:40, hc:20, po:'84020'},
+  {id:'wakamatsu',   label:'若松',   point:'若松',         pc:40, hc:10, po:'84010'},
+  {id:'marugame',    label:'丸亀',   point:'丸亀',         pc:37, hc:10, po:'73710'},
 ];
 
-function mieyellUrl(po, anchor){
-  return `https://sio.mieyell.jp/select?po=${po}${anchor||''}`;
+function mieyellUrl(po){
+  return `https://sio.mieyell.jp/select?po=${po}`;
 }
 
-/* 月間表の中で「今日」に近いアンカーへ飛ばす（ページ側に #10 / #20 / #28 の
-   見出しアンカーが用意されているため、ちょうど良い位置までスクロールできる）*/
-function anchorForToday(){
+function todayParts(){
   const jst = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));
-  const d = jst.getDate();
-  if(d < 10) return '';
-  if(d < 20) return '#10';
-  if(d < 28) return '#20';
-  return '#28';
+  return {yr:jst.getFullYear(), mn:jst.getMonth()+1, dy:jst.getDate(), jst};
 }
 
-function todayYMD(){
-  const jst = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));
-  return {yr:jst.getFullYear(), mn:jst.getMonth()+1, dy:jst.getDate()};
-}
-
-/* 縦軸＝潮位(cm)・横軸＝時刻のグラフ画像。潮名・上げ潮/下げ潮などの状態も
-   画像内に描画される（tide736.net 公式の埋め込み画像API。<img>表示は
-   CORSの影響を受けないため、これまでの通信エラーが起こらない）。 */
-function tideImageUrl(v){
-  const {yr,mn,dy} = todayYMD();
-  const params = new URLSearchParams({
-    pc:v.pc, hc:v.hc, yr, mn, dy, rg:'day',
-    w:800, h:420, lc:'blue', gcs:'cyan', gcf:'blue',
-    ld:'on', ttd:'on', tsmd:'on',
+async function fetchTide(pc, hc, yr, mn, dy){
+  const body = new URLSearchParams({pc, hc, yr, mn, dy, rg:'day'});
+  const res = await fetch('https://tide736.net/api/get_tide.php', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: body.toString(),
+    cache: 'no-store',
   });
-  return `https://api.tide736.net/tide_image.php?${params.toString()}`;
+  if(!res.ok) throw new Error('http '+res.status);
+  const data = await res.json();
+  if(data.status !== 1) throw new Error(data.message || 'api error');
+  return data;
 }
 
-function cardHTML(v){
-  const imgUrl = tideImageUrl(v);
-  const mieUrl = mieyellUrl(v.po, anchorForToday());
-  return `<div class="vcard">
+function pad(n){return String(n).padStart(2,'0');}
+
+function findChartToday(data, yr, mn, dy){
+  const key = `${yr}-${pad(mn)}-${pad(dy)}`;
+  if(data?.tide?.chart?.[key]) return data.tide.chart[key];
+  const vals = Object.values(data?.tide?.chart || {});
+  return vals[0] || null;
+}
+
+function currentLevel(points, now){
+  if(!points || !points.length) return null;
+  for(let i=0;i<points.length-1;i++){
+    const t0 = points[i].unix*1000 || points[i].unix;
+    const t1 = points[i+1].unix*1000 || points[i+1].unix;
+    const t0ms = points[i].unix > 2e10 ? points[i].unix : points[i].unix*1000;
+    const t1ms = points[i+1].unix > 2e10 ? points[i+1].unix : points[i+1].unix*1000;
+    if(now.getTime()>=t0ms && now.getTime()<=t1ms){
+      const ratio = (now.getTime()-t0ms)/(t1ms-t0ms || 1);
+      return {cm: points[i].cm + (points[i+1].cm-points[i].cm)*ratio, idx:i, ratio};
+    }
+  }
+  return {cm: points[points.length-1].cm, idx: points.length-1, ratio:1};
+}
+
+function phaseLabel(chart, nowInfo){
+  const events = [
+    ...(chart.flood||[]).map(e=>({...e, kind:'満潮'})),
+    ...(chart.edd||[]).map(e=>({...e, kind:'干潮'})),
+  ].filter(e=>e.time && e.time!=='--:--');
+  if(!events.length || !nowInfo) return '—';
+  // find nearest event by clock time (compare HH:MM only, same day)
+  const {jst} = todayParts();
+  const nowMin = jst.getHours()*60 + jst.getMinutes();
+  let nearest=null, nearestDiff=Infinity;
+  for(const e of events){
+    const [h,m] = e.time.split(':').map(Number);
+    const diff = Math.abs((h*60+m) - nowMin);
+    if(diff < nearestDiff){ nearestDiff=diff; nearest=e; }
+  }
+  if(nearest && nearestDiff <= 25) return nearest.kind + '付近';
+  // otherwise: rising or falling based on neighboring points slope
+  const pts = chart.tide;
+  const i = nowInfo.idx;
+  const next = pts[Math.min(i+1, pts.length-1)];
+  const cur = pts[i];
+  return (next.cm >= cur.cm) ? '上げ潮' : '下げ潮';
+}
+
+function svgGraph(chart, nowInfo){
+  const pts = chart.tide;
+  const cms = pts.map(p=>p.cm);
+  const min = Math.min(...cms), max = Math.max(...cms);
+  const range = (max-min) || 1;
+  const W=760, H=280, padL=44, padR=14, padT=14, padB=26;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const x = i => padL + (i/(pts.length-1))*plotW;
+  const y = cm => padT + plotH - ((cm-min)/range)*plotH;
+
+  const linePath = cms.map((cm,i)=>(i===0?'M':'L')+x(i).toFixed(1)+','+y(cm).toFixed(1)).join(' ');
+  const areaPath = `${linePath} L${x(pts.length-1).toFixed(1)},${(padT+plotH).toFixed(1)} L${x(0).toFixed(1)},${(padT+plotH).toFixed(1)} Z`;
+
+  // gridlines: every 4 hours (pts are 20-min interval => 12 per 4h)
+  const gridLines = [];
+  for(let i=0;i<pts.length;i+=12){
+    gridLines.push(`<line x1="${x(i).toFixed(1)}" y1="${padT}" x2="${x(i).toFixed(1)}" y2="${padT+plotH}" stroke="var(--border)" stroke-width="1"/>`);
+    gridLines.push(`<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="10" fill="var(--text3)" text-anchor="middle" font-family="var(--mono)">${pts[i].time || ''}</text>`);
+  }
+  // y-axis labels (min, mid, max)
+  const yTicks = [min, (min+max)/2, max];
+  const yLabels = yTicks.map(v=>`
+    <line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${padL+plotW}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,3"/>
+    <text x="${padL-6}" y="${(y(v)+3).toFixed(1)}" font-size="10" fill="var(--text3)" text-anchor="end" font-family="var(--mono)">${Math.round(v)}</text>
+  `).join('');
+
+  // event markers (flood/edd)
+  const events = [
+    ...(chart.flood||[]).filter(e=>e.time && e.time!=='--:--').map(e=>({...e, kind:'満'})),
+    ...(chart.edd||[]).filter(e=>e.time && e.time!=='--:--').map(e=>({...e, kind:'干'})),
+  ];
+  const eventMarks = events.map(e=>{
+    const [h,m] = e.time.split(':').map(Number);
+    const frac = (h*60+m)/(24*60);
+    const idx = frac*(pts.length-1);
+    const cm = e.cm ?? (cms[Math.round(idx)] ?? min);
+    return `<circle cx="${x(idx).toFixed(1)}" cy="${y(cm).toFixed(1)}" r="3.5" fill="var(--gold)" stroke="#fff" stroke-width="1"/>
+      <text x="${x(idx).toFixed(1)}" y="${(y(cm)-9).toFixed(1)}" font-size="10" fill="var(--text2)" text-anchor="middle" font-family="var(--mono)" font-weight="700">${e.kind}${e.time}</text>`;
+  }).join('');
+
+  // now marker
+  let nowMark = '';
+  if(nowInfo){
+    const nx = x(nowInfo.idx + nowInfo.ratio);
+    const ny = y(nowInfo.cm);
+    nowMark = `<line x1="${nx.toFixed(1)}" y1="${padT}" x2="${nx.toFixed(1)}" y2="${padT+plotH}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="5" fill="var(--accent)" stroke="#fff" stroke-width="1.5"/>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img">
+    <path d="${areaPath}" fill="rgba(0,102,255,.10)" stroke="none"/>
+    ${yLabels}
+    ${gridLines.join('')}
+    <path d="${linePath}" fill="none" stroke="#0066ff" stroke-width="2"/>
+    ${eventMarks}
+    ${nowMark}
+  </svg>`;
+}
+
+function cardSkeleton(v){
+  return `<div class="vcard" id="card-${v.id}">
     <div class="vcard-head">
       <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
-      <a class="ext-link" href="${mieyellUrl(v.po,'')}" target="_blank" rel="noopener">確認用ページ ↗</a>
+      <span class="shio-badge" id="shio-${v.id}">--</span>
     </div>
-    <div class="graph-wrap">
-      <img src="${imgUrl}" alt="${v.label}（${v.point}）の潮位グラフ" loading="lazy"
-        onerror="this.closest('.graph-wrap').innerHTML='<div class=&quot;graph-fallback&quot;>グラフを読み込めませんでした。<a href=&quot;${mieUrl}&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>潮MieYellで確認</a></div>'">
-    </div>
+    <div class="vcard-status" id="status-${v.id}">読み込み中…</div>
   </div>`;
 }
 
+async function loadVenue(v){
+  const el = document.getElementById(`card-${v.id}`);
+  try{
+    const {yr,mn,dy,jst} = todayParts();
+    const data = await fetchTide(v.pc, v.hc, yr, mn, dy);
+    const chart = findChartToday(data, yr, mn, dy);
+    if(!chart || !chart.tide) throw new Error('データ形式が想定と異なります');
+    const nowInfo = currentLevel(chart.tide, jst);
+    const phase = phaseLabel(chart, nowInfo);
+    const shioName = chart.moon?.title || chart.tide_name || '--';
+
+    el.innerHTML = `
+      <div class="vcard-head">
+        <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
+        <span class="shio-badge">${shioName}・${phase}</span>
+      </div>
+      <div class="level-now">
+        現在潮位 <b>${nowInfo ? Math.round(nowInfo.cm) : '--'}<small>cm</small></b>
+      </div>
+      <div class="graph-wrap">${svgGraph(chart, nowInfo)}</div>
+      <div class="card-foot"><a class="ext-link" href="${mieyellUrl(v.po)}" target="_blank" rel="noopener">数値表で確認 ↗</a></div>
+    `;
+  }catch(e){
+    el.innerHTML = `
+      <div class="vcard-head">
+        <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
+      </div>
+      <div class="vcard-status err">潮汐データを取得できませんでした（${e.message}）。
+        <a href="${mieyellUrl(v.po)}" target="_blank" rel="noopener">潮MieYellで確認</a>
+      </div>`;
+  }
+}
+
 function initCards(){
-  document.getElementById('cardGrid').innerHTML = venues.map(cardHTML).join('');
+  document.getElementById('cardGrid').innerHTML = venues.map(cardSkeleton).join('');
+  venues.forEach(loadVenue);
 }
 
 initCards();
+setInterval(()=>venues.forEach(loadVenue), 10*60*1000); // 10分ごとに自動更新
+
 
 
 /* ============ data tab: イン逃げ率 tables ============ */
