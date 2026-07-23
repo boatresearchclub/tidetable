@@ -114,7 +114,7 @@
 
   /* ===== venue cards ===== */
   .card-grid{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;
   }
   .vcard{
     background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
@@ -125,35 +125,27 @@
     content:"";position:absolute;top:0;left:0;right:0;height:3px;
     background:linear-gradient(90deg,var(--accent),var(--gold));
   }
-  .vcard-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .vcard-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;flex-wrap:wrap;}
   .vcard-head .name{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;font-size:19px;color:var(--text);}
   .vcard-head .point{display:block;font-size:11px;color:var(--text3);font-weight:500;margin-top:2px;}
-  .shio-badge{
-    font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;
-    background:var(--orange2);color:var(--orange);border:1px solid rgba(226,104,10,.35);
-    white-space:nowrap;
+  .ext-link{
+    font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;
+    background:var(--bg4);color:var(--accent);border:1px solid var(--accent);
+    white-space:nowrap;text-decoration:none;flex-shrink:0;
   }
+  .ext-link:hover{background:#dbe8ff;}
 
-  .vcard-body{display:flex;gap:14px;align-items:center;}
-  .gauge-wrap{width:34px;height:92px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;position:relative;flex:none;overflow:hidden;}
-  .gauge-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,var(--accent2),var(--accent));transition:height .6s ease;}
-  .gauge-marker{position:absolute;left:-3px;right:-3px;height:2px;background:var(--gold);}
-
-  .level-info{flex:1;min-width:0;}
-  .level-cm{font-family:var(--mono);font-size:27px;font-weight:700;color:var(--text);line-height:1;}
-  .level-cm span{font-size:13px;color:var(--text3);font-weight:400;margin-left:3px;}
-  .level-sub{font-size:11.5px;color:var(--text2);margin-top:6px;line-height:1.7;}
-  .level-sub b{color:var(--text);font-family:var(--mono);font-weight:600;}
-
-  .spark-wrap{margin-top:12px;}
-  .spark-wrap svg{width:100%;height:44px;display:block;}
-
-  .vcard-status{
-    margin-top:10px;font-size:11.5px;color:var(--text3);
-    padding:8px 10px;background:var(--bg3);border-radius:var(--radius-sm);border:1px dashed var(--border);
+  .graph-wrap{
+    border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;
+    background:var(--bg3);min-height:80px;
   }
-  .vcard-status a{color:var(--accent);text-decoration:none;}
-  .vcard-status.err{color:var(--red);border-color:rgba(255,59,59,.35);background:var(--red2);}
+  .graph-wrap img{
+    width:100%;height:auto;display:block;
+  }
+  .graph-fallback{
+    padding:16px;font-size:12px;color:var(--text3);text-align:center;
+  }
+  .graph-fallback a{color:var(--accent);text-decoration:none;font-weight:700;}
 
   /* ===== data tab ===== */
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text2);margin-bottom:16px;}
@@ -239,8 +231,7 @@
 <main>
   <section class="panel" id="tab-live">
     <div class="panel-note">
-      <p>現在時刻の潮位を各場の観測地点（水路実測ではなく計算推算値）から表示します。数十分ごとの自動更新に対応。航海用途には使用できません。</p>
-      <button class="refresh-btn" id="refreshBtn">⟳ 更新</button>
+      <p>各場の観測地点の潮位グラフ（縦軸：潮位cm／横軸：時刻）をtide736.net公式の画像から表示。潮名・上げ潮／下げ潮などの状態もグラフ内に表示されます。地点コードは推定のため、画像内の地点名表記が一致しているかご確認ください。ズレていた場合は教えてください。航海用途には使用できません。</p>
     </div>
     <div class="card-grid" id="cardGrid"></div>
   </section>
@@ -260,7 +251,7 @@
 </main>
 
 <footer>
-  潮汐データ出典：<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.net（日本沿岸736港の潮汐表）</a>／海上保安庁海洋情報部の潮汐調和定数に基づく推算値であり、公式「潮汐表」の代替にはなりません。イン逃げ率データは提供いただいた集計資料（舟券太郎データ新聞 特別企画）に基づく参考情報です。投資判断は自己責任でお願いします。
+  潮位グラフ出典：<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.net（日本沿岸736港の潮汐表）</a>／確認用ページ：<a href="https://sio.mieyell.jp/" target="_blank" rel="noopener">潮MieYell（しおみエール）</a>／いずれも海上保安庁水路部 書誌742号「日本沿岸潮汐調和定数表」に基づく推算値であり、公式「潮汐表」の代替にはなりません。イン逃げ率データは提供いただいた集計資料（舟券太郎データ新聞 特別企画）に基づく参考情報です。投資判断は自己責任でお願いします。
 </footer>
 
 <script>
@@ -285,254 +276,74 @@ function updateClock(){
 updateClock(); setInterval(updateClock,1000);
 
 /* ============ venue definitions ============ */
+/* po = 潮MieYell（sio.mieyell.jp）の地点コード。名前を直接確認済みで確実。
+   pc/hc = tide736.net の都道府県コード／港コード。tide736 側は自動検証が
+   できなかったため、潮MieYellの港コード末尾（＝都道府県内の掲載順）から
+   推定しています。グラフ画像内に地点名が表示されるので、ズレていれば
+   一目で分かります。 */
 const venues = [
-  {id:'kojima',      label:'児島',   point:'下津井',       pc:33, fragments:['下津井']},
-  {id:'heiwajima',   label:'平和島', point:'築地',         pc:13, fragments:['築地']},
-  {id:'shimonoseki', label:'下関',   point:'岩黒',         pc:35, fragments:['岩黒']},
-  {id:'fukuoka',     label:'福岡',   point:'博多船だまり', pc:40, fragments:['博多船だまり','博多船溜','博多']},
-  {id:'wakamatsu',   label:'若松',   point:'若松',         pc:40, fragments:['若松']},
-  {id:'marugame',    label:'丸亀',   point:'丸亀',         pc:37, fragments:['丸亀']},
+  {id:'kojima',      label:'児島',   point:'下津井',       po:'63307', pc:33, hc:7},
+  {id:'heiwajima',   label:'平和島', point:'築地',         po:'21301', pc:13, hc:1},
+  {id:'shimonoseki', label:'下関',   point:'岩黒',         po:'63516', pc:35, hc:16},
+  {id:'fukuoka',     label:'福岡',   point:'博多船だまり', po:'84020', pc:40, hc:20},
+  {id:'wakamatsu',   label:'若松',   point:'若松',         po:'84010', pc:40, hc:10},
+  {id:'marugame',    label:'丸亀',   point:'丸亀',         po:'73710', pc:37, hc:10},
 ];
 
-/* ============ storage helpers (cache discovered harbor codes) ============ */
-/* Uses plain localStorage so this works on GitHub Pages / any static host,
-   not just inside a Claude artifact. Cache lives per-browser, not shared
-   across visitors — still cuts repeat API calls down to zero after first load. */
-async function cacheGet(key){
-  try{ return localStorage.getItem(key); }catch(e){ return null; }
-}
-async function cacheSet(key, val){
-  try{ localStorage.setItem(key, val); }catch(e){ /* ignore */ }
+function mieyellUrl(po, anchor){
+  return `https://sio.mieyell.jp/select?po=${po}${anchor||''}`;
 }
 
-/* ============ tide736 API ============ */
-function todayParts(){
+/* 月間表の中で「今日」に近いアンカーへ飛ばす（ページ側に #10 / #20 / #28 の
+   見出しアンカーが用意されているため、ちょうど良い位置までスクロールできる）*/
+function anchorForToday(){
   const jst = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));
-  return {yr:jst.getFullYear(), mn:jst.getMonth()+1, dy:jst.getDate(), jst};
+  const d = jst.getDate();
+  if(d < 10) return '';
+  if(d < 20) return '#10';
+  if(d < 28) return '#20';
+  return '#28';
 }
 
-/* api.tide736.net doesn't reliably send Access-Control-Allow-Origin for every
-   host this page might run on, so a direct fetch() can be blocked by the
-   browser even though the request itself is fine. Try direct first, then
-   fall back through a couple of free CORS relay services. Whichever one
-   works first is remembered for the rest of the session. */
-const PROXY_STRATEGIES = [
-  { name:'direct',     build:(u)=>u },
-  { name:'allorigins', build:(u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
-  { name:'codetabs',   build:(u)=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
-];
-let workingStrategy = null;
-
-function fetchWithTimeout(url, ms=8000){
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), ms);
-  return fetch(url, {cache:'no-store', signal: ctrl.signal}).finally(()=>clearTimeout(timer));
+function todayYMD(){
+  const jst = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));
+  return {yr:jst.getFullYear(), mn:jst.getMonth()+1, dy:jst.getDate()};
 }
 
-async function fetchJsonWithFallback(targetUrl){
-  const order = workingStrategy
-    ? [workingStrategy, ...PROXY_STRATEGIES.filter(s=>s!==workingStrategy)]
-    : PROXY_STRATEGIES;
-  let lastErr;
-  for(const strat of order){
-    try{
-      const res = await fetchWithTimeout(strat.build(targetUrl), 8000);
-      if(!res.ok) throw new Error('http '+res.status);
-      const data = await res.json();
-      workingStrategy = strat;
-      return data;
-    }catch(e){ lastErr = e; continue; }
-  }
-  throw lastErr || new Error('接続できませんでした');
-}
-
-async function fetchPort(pc, hc, yr, mn, dy){
-  const url = `https://api.tide736.net/get_tide.php?pc=${pc}&hc=${hc}&yr=${yr}&mn=${mn}&dy=${dy}&rg=day`;
-  const data = await fetchJsonWithFallback(url);
-  if(data.status !== 1) throw new Error(data.message || 'api error');
-  return data;
-}
-
-/* discover harbor_code for each venue, grouped by prefecture to minimize calls.
-   All candidate hc values (and all prefecture groups) are probed concurrently
-   rather than one-at-a-time — combined with the fetch timeout above, this
-   guarantees discovery finishes in roughly one round-trip instead of a long
-   sequential chain that can look "stuck". */
-async function discoverGroup(pc, group){
-  const {yr,mn,dy} = todayParts();
-  for(const v of group){
-    const cached = await cacheGet(`hc:${v.pc}:${v.id}`);
-    if(cached) v.hc = Number(cached);
-  }
-  if(group.every(v=>v.hc)) return;
-
-  const HC_MAX = 15;
-  const attempts = [];
-  for(let hc=1; hc<=HC_MAX; hc++){
-    attempts.push(fetchPort(pc,hc,yr,mn,dy).then(data=>({hc,data})).catch(()=>null));
-  }
-  const results = await Promise.all(attempts);
-  for(const r of results){
-    if(!r) continue;
-    const all = [r.data.tide.port, ...(r.data.tide.link||[])];
-    for(const v of group){
-      if(v.hc) continue;
-      const match = all.find(h => h.harbor_namej && v.fragments.some(f=>h.harbor_namej.includes(f)));
-      if(match){
-        v.hc = match.harbor_code;
-        cacheSet(`hc:${v.pc}:${v.id}`, String(v.hc));
-      }
-    }
-  }
-}
-
-async function ensureHarborCodes(){
-  const byPc = {};
-  venues.forEach(v=>{ (byPc[v.pc] ??= []).push(v); });
-  await Promise.all(Object.entries(byPc).map(([pc,group])=>discoverGroup(pc,group)));
-}
-
-/* ============ current level interpolation ============ */
-function findChartToday(data, yr, mn, dy){
-  const key = `${yr}-${pad(mn)}-${pad(dy)}`;
-  return data.tide.chart[key] || Object.values(data.tide.chart)[0];
-}
-function currentLevel(chart, now){
-  const pts = chart.tide;
-  if(!pts || !pts.length) return null;
-  let best=null, bestDiff=Infinity;
-  for(let i=0;i<pts.length-1;i++){
-    const t0=pts[i].unix, t1=pts[i+1].unix;
-    if(now.getTime()>=t0 && now.getTime()<=t1){
-      const ratio = (now.getTime()-t0)/(t1-t0);
-      return pts[i].cm + (pts[i+1].cm-pts[i].cm)*ratio;
-    }
-    const d = Math.abs(pts[i].unix-now.getTime());
-    if(d<bestDiff){bestDiff=d;best=pts[i].cm;}
-  }
-  return best;
-}
-function nextEvent(chart, now){
-  const evs = [
-    ...(chart.flood||[]).map(e=>({...e,type:'満潮'})),
-    ...(chart.edd||[]).map(e=>({...e,type:'干潮'})),
-  ].filter(e=>e.unix > now.getTime()).sort((a,b)=>a.unix-b.unix);
-  return evs[0] || null;
-}
-
-/* ============ rendering: live cards ============ */
-function sparkSVG(pts, nowRatio){
-  const cms = pts.map(p=>p.cm);
-  const min = Math.min(...cms), max = Math.max(...cms);
-  const range = (max-min)||1;
-  const W=300,H=44,pad=3;
-  const step = (W-pad*2)/(pts.length-1);
-  const coords = cms.map((cm,i)=>{
-    const x = pad+i*step;
-    const y = H-pad - ((cm-min)/range)*(H-pad*2);
-    return [x,y];
+/* 縦軸＝潮位(cm)・横軸＝時刻のグラフ画像。潮名・上げ潮/下げ潮などの状態も
+   画像内に描画される（tide736.net 公式の埋め込み画像API。<img>表示は
+   CORSの影響を受けないため、これまでの通信エラーが起こらない）。 */
+function tideImageUrl(v){
+  const {yr,mn,dy} = todayYMD();
+  const params = new URLSearchParams({
+    pc:v.pc, hc:v.hc, yr, mn, dy, rg:'day',
+    w:800, h:420, lc:'blue', gcs:'cyan', gcf:'blue',
+    ld:'on', ttd:'on', tsmd:'on',
   });
-  const path = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
-  const nowX = pad + nowRatio*(W-pad*2);
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-    <path d="${path} L${W-pad},${H} L${pad},${H} Z" fill="rgba(0,102,255,.10)" stroke="none"/>
-    <path d="${path}" fill="none" stroke="#0066ff" stroke-width="1.6"/>
-    <line x1="${nowX.toFixed(1)}" y1="0" x2="${nowX.toFixed(1)}" y2="${H}" stroke="#ffb300" stroke-width="1" stroke-dasharray="3,2"/>
-    <circle cx="${nowX.toFixed(1)}" cy="${(H-pad-((currentCmGlobal-min)/range)*(H-pad*2)).toFixed(1)}" r="3" fill="#ffb300"/>
-  </svg>`;
+  return `https://api.tide736.net/tide_image.php?${params.toString()}`;
 }
 
-let currentCmGlobal = 0; // scratch var used inside sparkSVG closure per-card render
-
-function cardSkeleton(v){
-  return `<div class="vcard" id="card-${v.id}">
+function cardHTML(v){
+  const imgUrl = tideImageUrl(v);
+  const mieUrl = mieyellUrl(v.po, anchorForToday());
+  return `<div class="vcard">
     <div class="vcard-head">
       <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
-      <span class="shio-badge" id="shio-${v.id}">--</span>
+      <a class="ext-link" href="${mieyellUrl(v.po,'')}" target="_blank" rel="noopener">確認用ページ ↗</a>
     </div>
-    <div class="vcard-status" id="status-${v.id}">読み込み中…</div>
+    <div class="graph-wrap">
+      <img src="${imgUrl}" alt="${v.label}（${v.point}）の潮位グラフ" loading="lazy"
+        onerror="this.closest('.graph-wrap').innerHTML='<div class=&quot;graph-fallback&quot;>グラフを読み込めませんでした。<a href=&quot;${mieUrl}&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>潮MieYellで確認</a></div>'">
+    </div>
   </div>`;
 }
 
-function renderCardData(v, data, now){
-  const chart = findChartToday(data, now.__yr, now.__mn, now.__dy);
-  const cm = currentLevel(chart, now);
-  currentCmGlobal = cm;
-  const nxt = nextEvent(chart, now);
-  const cms = chart.tide.map(p=>p.cm);
-  const min = Math.min(...cms), max = Math.max(...cms);
-  const fillPct = Math.max(0,Math.min(100, ((cm-min)/((max-min)||1))*100));
-  const nowRatio = chart.tide.findIndex(p=>p.unix>now.getTime());
-  const ratio = nowRatio<=0 ? 0.98 : nowRatio/chart.tide.length;
-
-  const el = document.getElementById(`card-${v.id}`);
-  document.getElementById(`shio-${v.id}`).textContent = chart.moon?.title || '--';
-  el.innerHTML = `
-    <div class="vcard-head">
-      <div><span class="name">${v.label}</span><span class="point">観測地点：${v.point}</span></div>
-      <span class="shio-badge">${chart.moon?.title || '--'}</span>
-    </div>
-    <div class="vcard-body">
-      <div class="gauge-wrap"><div class="gauge-fill" style="height:${fillPct.toFixed(0)}%"></div></div>
-      <div class="level-info">
-        <div class="level-cm">${cm.toFixed(0)}<span>cm</span></div>
-        <div class="level-sub">
-          満潮 <b>${(chart.flood?.[0]?.time)||'--'}</b> / <b>${(chart.flood?.[1]?.time)||'--'}</b><br>
-          干潮 <b>${(chart.edd?.[0]?.time)||'--'}</b> / <b>${(chart.edd?.[1]?.time)||'--'}</b><br>
-          ${nxt ? `次：<b>${nxt.type} ${nxt.time}</b>` : '本日分終了'}
-        </div>
-      </div>
-    </div>
-    <div class="spark-wrap">${sparkSVG(chart.tide, ratio)}</div>
-  `;
-}
-
-async function loadVenue(v){
-  const statusEl = ()=>document.getElementById(`status-${v.id}`);
-  try{
-    if(!v.hc){
-      if(statusEl()) statusEl().innerHTML = `観測地点コードを特定できませんでした。<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.netで確認</a>`;
-      if(statusEl()) statusEl().classList.add('err');
-      return;
-    }
-    const {yr,mn,dy,jst} = todayParts();
-    const data = await fetchPort(v.pc, v.hc, yr, mn, dy);
-    jst.__yr=yr; jst.__mn=mn; jst.__dy=dy;
-    renderCardData(v, data, jst);
-  }catch(e){
-    if(statusEl()){
-      statusEl().innerHTML = `潮汐データを取得できませんでした（${e.message}）。<a href="https://tide736.net/" target="_blank" rel="noopener">tide736.netで確認</a>`;
-      statusEl().classList.add('err');
-    }
-  }
-}
-
-function withTimeout(promise, ms){
-  return Promise.race([
-    promise,
-    new Promise(resolve=>setTimeout(resolve, ms)), // swallow — individual pieces show their own error state
-  ]);
-}
-
-async function loadAll(){
-  const btn = document.getElementById('refreshBtn');
-  btn.disabled = true; btn.textContent = '⟳ 更新中…';
-  try{
-    await withTimeout(ensureHarborCodes(), 25000);
-    await withTimeout(Promise.all(venues.map(loadVenue)), 30000);
-  } finally {
-    btn.disabled = false; btn.textContent = '⟳ 更新';
-  }
-}
-
 function initCards(){
-  document.getElementById('cardGrid').innerHTML = venues.map(cardSkeleton).join('');
+  document.getElementById('cardGrid').innerHTML = venues.map(cardHTML).join('');
 }
 
-document.getElementById('refreshBtn').addEventListener('click', loadAll);
 initCards();
-loadAll();
-setInterval(loadAll, 10*60*1000); // auto refresh every 10 min
+
 
 /* ============ data tab: イン逃げ率 tables ============ */
 const venueData = {
